@@ -8,6 +8,7 @@ pandas = "*"
 prefect = "*"
 sqlalchemy = "*"
 psycopg2 = "*"
+pyarrow = "*"
 
 [dev-packages]
 
