@@ -62,7 +62,7 @@ def get_gcs_cmd(fn):
 
 
 def main():
-    with Flow("UpdateLocationParquetFiles") as flow:
+    with Flow("update-location-parquet-files") as flow:
         connstr = EnvVarSecret("COVID_DB_CONN_URI")
         location_ids = fetch_location_ids(connstr)
         filename_tuples = create_location_parquet.map(
@@ -73,7 +73,7 @@ def main():
         # TODO: figure out how to test this
         # ShellTask().map(file_permission_commands)
 
-    flow.run()
+    flow.register(project_name="prefect-exploration")
 
 
 if __name__ == "__main__":
