@@ -7,6 +7,7 @@ import os
 import pandas as pd
 import pathlib
 import prefect
+import pyarrow
 import sqlalchemy as sa
 
 from prefect import flatten, Flow, task, unmapped
