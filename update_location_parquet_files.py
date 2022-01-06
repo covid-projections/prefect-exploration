@@ -33,6 +33,10 @@ def fetch_location_ids(connstr: str):
 
 @task(task_run_name="create_location_parquet ({location_id})")
 def create_location_parquet(connstr: str, location_id: str):
+    logger = prefect.context.get("logger")
+
+    logger.info(location_id)
+
     engine = sa.create_engine(connstr)
     with engine.connect() as conn:
         query = sa.text(
@@ -49,10 +53,12 @@ def create_location_parquet(connstr: str, location_id: str):
     dt_str = pd.to_datetime(ts).strftime("%Y-%m-%dT%H")
     vintage_fn = f"{FILENAME_PREFIX}_{location_id}_{dt_str}.parquet"
     df.to_parquet(DATA_PATH / vintage_fn, index=False)
+    logger.info(vintage_fn)
 
     # Replace primary file.
     fn = f"{FILENAME_PREFIX}_{location_id}.parquet"
     df.to_parquet(DATA_PATH / fn, index=False)
+    logger.info(fn)
 
     return vintage_fn, fn
 
