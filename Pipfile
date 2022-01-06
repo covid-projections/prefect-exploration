@@ -9,5 +9,6 @@ prefect = "*"
 sqlalchemy = "*"
 psycopg2 = "*"
 pyarrow = "*"
+google-cloud-storage = "*"
 
 [dev-packages]
