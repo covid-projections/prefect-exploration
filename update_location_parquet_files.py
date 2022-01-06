@@ -11,7 +11,7 @@ import pyarrow
 import sqlalchemy as sa
 
 from prefect import flatten, Flow, task, unmapped
-from prefect.executors import DaskExecutor
+from prefect.executors import LocalDaskExecutor
 from prefect.tasks.shell import ShellTask
 from prefect.tasks.secrets import EnvVarSecret
 
@@ -63,7 +63,7 @@ def get_gcs_cmd(fn):
 
 
 def main():
-    with Flow("update-location-parquet-files") as flow:
+    with Flow("update-location-parquet-files", executor=LocalDaskExecutor()) as flow:
         connstr = EnvVarSecret("COVID_DB_CONN_URI")
         location_ids = fetch_location_ids(connstr)
         filename_tuples = create_location_parquet.map(
