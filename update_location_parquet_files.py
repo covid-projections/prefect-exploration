@@ -31,7 +31,7 @@ def fetch_location_ids(connstr: str):
         return location_ids
 
 
-@task
+@task(task_run_name="create_location_parquet ({location_id})")
 def create_location_parquet(connstr: str, location_id: str):
     engine = sa.create_engine(connstr)
     with engine.connect() as conn:
