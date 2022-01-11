@@ -50,7 +50,7 @@ from google.cloud import storage
 from prefect import Flow, Parameter, task, unmapped
 from prefect.engine import signals
 from prefect.executors import DaskExecutor, LocalDaskExecutor
-from prefect.run_configs import UniversalRun
+from prefect.run_configs import LocalRun, UniversalRun
 from prefect.storage import GCS
 from prefect.tasks.control_flow.filter import FilterTask
 from prefect.tasks.prefect import create_flow_run
@@ -216,7 +216,7 @@ def main():
     flow_ids = []
     for state in states:
         flow = create_flow(state, provider)
-        flow.run_config = UniversalRun()
+        flow.run_config = LocalRun(labels=["dev"])
         flow_id = flow.register(project_name="prefect-exploration")
         flow_ids.append(flow_id)
 
@@ -229,7 +229,7 @@ def main():
         for flow_id in flow_ids:
             create_flow_run(flow_id)
 
-    parent_flow.run_config = UniversalRun()
+    parent_flow.run_config = LocalRun(labels=["dev"])
     parent_flow.register(project_name="prefect-exploration")
 
 
