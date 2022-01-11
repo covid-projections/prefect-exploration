@@ -12,6 +12,7 @@ import sqlalchemy as sa
 
 from prefect import flatten, Flow, task, unmapped
 from prefect.executors import LocalDaskExecutor
+from prefect.run_configs import UniversalRun
 from prefect.tasks.shell import ShellTask
 from prefect.tasks.secrets import EnvVarSecret
 
@@ -80,6 +81,7 @@ def main():
         # TODO: figure out how to test this
         # ShellTask().map(file_permission_commands)
 
+    flow.run_config = UniversalRun()
     flow.register(project_name="prefect-exploration")
 
 
