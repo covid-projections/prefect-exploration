@@ -64,7 +64,7 @@ def location_ids_for(state: str, geo_data_path: str = GEO_DATA_PATH) -> List[str
     return df["location_id"].tolist()
 
 
-@task
+@task(task_run_name="daily_new_cases_for ({location_id})")
 def daily_new_cases_for(location_id: str, provider: str, smooth: int) -> float:
     logger = prefect.context.get("logger")
 
