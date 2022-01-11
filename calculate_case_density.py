@@ -43,6 +43,7 @@ import argparse
 import re
 import pandas as pd
 import prefect
+import sqlalchemy as sa
 
 from datetime import date, timedelta
 from google.cloud import storage
@@ -71,6 +72,7 @@ def location_ids_for(state: str, geo_data_path: str = GEO_DATA_PATH) -> List[str
 def daily_new_cases_for(location_id: str, provider: str, smooth: int) -> float:
     logger = prefect.context.get("logger")
 
+    '''
     storage_client = storage.Client()
     bucket = storage_client.bucket("prefect-exploration")
     fn = f"can_scrape_api_covid_us_{location_id}.parquet"
@@ -85,6 +87,16 @@ def daily_new_cases_for(location_id: str, provider: str, smooth: int) -> float:
         # TODO: report the error somewhere. Sentry?
         prefect.context.logger.error(f"missing Parquet COVID data for {location_id}")
         raise signals.SKIP()
+    '''
+
+    engine = sa.create_engine(connstr)
+
+    with engine.connect() as conn:
+        query = sa.text(
+            "SELECT * FROM public.covid_us WHERE location_id = :location_id;"
+        ).bindparams(location_id=location_id)
+
+        df = pd.read_sql_query(query, conn)
 
     # TODO: add ability to back off to other providers?
     df = df[df["provider"] == provider]
