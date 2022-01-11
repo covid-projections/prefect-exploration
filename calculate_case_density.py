@@ -48,7 +48,7 @@ from datetime import date, timedelta
 from google.cloud import storage
 from prefect import Flow, Parameter, task, unmapped
 from prefect.engine import signals
-from prefect.executors import DaskExecutor
+from prefect.executors import DaskExecutor, LocalDaskExecutor
 from prefect.tasks.control_flow.filter import FilterTask
 from typing import List
 
@@ -158,24 +158,16 @@ def create_flow(state, provider):
         filter_func=lambda x: not isinstance(x, signals.SKIP)
     )
 
-    with Flow(f"CalculateCaseDensity - {state} - {provider}") as flow:
-        geo_data_path = Parameter("geo_data_path", default=GEO_DATA_PATH)
-        provider = Parameter("provider", default="usafacts")
-        population_data_path = Parameter(
-            "population_data_path", default=POPULATION_DATA_PATH
-        )
-        smooth = Parameter("smooth", default=7)
-        state = Parameter("state")
+    with Flow(f"calculate-case-density ({state}) ({provider})",
+              executor=LocalDaskExecutor()) as flow:
 
-        location_ids = location_ids_for(state, geo_data_path)
+        location_ids = location_ids_for(state, GEO_DATA_PATH)
         daily_new_cases = sum_numbers(
             remove_skipped_tasks(
-                daily_new_cases_for.map(
-                    location_ids, unmapped(provider), unmapped(smooth)
-                )
+                daily_new_cases_for.map(location_ids, unmapped(provider), unmapped(7))
             )
         )
-        population = population_of(location_ids, population_data_path)
+        population = population_of(location_ids, POPULATION_DATA_PATH)
         case_density = calculate_case_density(daily_new_cases, population)
 
     return flow
@@ -186,27 +178,26 @@ def main():
         description="Generate basic COVID metrics for the given location(s)"
     )
     parser.add_argument(
-        "provider",
+        "--provider",
         default="usafacts",
         help="data provider to use (e.g. usafacts, cdc, ctp, hts)",
     )
     parser.add_argument(
-        "states",
+        "--states",
         help="comma-separated list of two-letter state abbreviation(s)",
     )
     args = parser.parse_args()
 
-    provider = args.provider
-    states = [state.strip() for state in args.states.split(",")]
+    provider = args.provider or 'usafacts'
+    if args.states:
+        states = [state.strip() for state in args.states.split(",")]
+    else:
+        df = pd.read_csv(GEO_DATA_PATH)
+        states = df["state"].dropna().unique().tolist()
 
     for state in states:
         flow = create_flow(state, provider)
-        flow.run(
-            geo_data_path="./geo-data.csv",
-            population_data_path="./fips_population.csv",
-            provider=provider,
-            state=state,
-        )
+        flow.register(project_name="prefect-exploration")
 
 
 if __name__ == "__main__":
