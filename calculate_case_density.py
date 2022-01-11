@@ -45,6 +45,7 @@ import pandas as pd
 import prefect
 
 from datetime import date, timedelta
+from google.cloud import storage
 from prefect import Flow, Parameter, task, unmapped
 from prefect.engine import signals
 from prefect.executors import DaskExecutor
@@ -65,7 +66,15 @@ def location_ids_for(state: str, geo_data_path: str = GEO_DATA_PATH) -> List[str
 
 @task
 def daily_new_cases_for(location_id: str, provider: str, smooth: int) -> float:
-    path = f"{COVID_DATA_PATH_PREFIX}_{location_id}.parquet"
+    logger = prefect.context.get("logger")
+
+    storage_client = storage.Client()
+    bucket = storage_client.bucket("prefect-exploration")
+    fn = f"can_scrape_api_covid_us_{location_id}.parquet"
+    blob = bucket.blob(f"location-parquet-files/{fn}")
+    path = f"/tmp/{fn}"
+    blob.download_to_filename(path)
+    logger.info(f"Downloaded to {path}")
 
     try:
         df = pd.read_parquet(path)
