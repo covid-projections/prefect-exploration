@@ -10,6 +10,7 @@ import prefect
 import pyarrow
 import sqlalchemy as sa
 
+from google.cloud import storage
 from prefect import flatten, Flow, task, unmapped
 from prefect.executors import LocalDaskExecutor
 from prefect.run_configs import UniversalRun
@@ -30,6 +31,14 @@ def fetch_location_ids(connstr: str):
         )
         location_ids = [row[0] for row in result.fetchall()]
         return location_ids
+
+def upload(local_path, bucket, blob_path):
+    logger = prefect.context.get("logger")
+
+    blob = bucket.blob(blob_path)
+    blob.upload_from_filename(local_path)
+
+    logger.info(f"Uploaded to {bucket.name}/{blob_path}")
 
 
 @task(task_run_name="create_location_parquet ({location_id})")
@@ -60,6 +69,12 @@ def create_location_parquet(connstr: str, location_id: str):
     fn = f"{FILENAME_PREFIX}_{location_id}.parquet"
     df.to_parquet(DATA_PATH / fn, index=False)
     logger.info(fn)
+
+    # Upload to Google Cloud Storage
+    storage_client = storage.Client()
+    bucket = storage_client.bucket("prefect-exploration")
+    upload(fn, bucket, f"location-parquet-files/{fn}")
+    upload(vintage_fn, bucket, f"location-parquet-files/{vintage_fn}")
 
     return vintage_fn, fn
 
