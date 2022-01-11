@@ -50,6 +50,7 @@ from prefect import Flow, Parameter, task, unmapped
 from prefect.engine import signals
 from prefect.executors import DaskExecutor, LocalDaskExecutor
 from prefect.run_configs import UniversalRun
+from prefect.storage import GCS
 from prefect.tasks.control_flow.filter import FilterTask
 from typing import List
 
@@ -160,7 +161,8 @@ def create_flow(state, provider):
     )
 
     with Flow(f"calculate-case-density ({state}) ({provider})",
-              executor=LocalDaskExecutor()) as flow:
+              executor=LocalDaskExecutor(),
+              storage=GCS(bucket="prefect-flows")) as flow:
 
         location_ids = location_ids_for(state, GEO_DATA_PATH)
         daily_new_cases = sum_numbers(
