@@ -52,6 +52,7 @@ from prefect.executors import DaskExecutor, LocalDaskExecutor
 from prefect.run_configs import UniversalRun
 from prefect.storage import GCS
 from prefect.tasks.control_flow.filter import FilterTask
+from prefect.tasks.prefect import create_flow_run
 from typing import List
 
 COVID_DATA_PATH_PREFIX = "./tmp/final/can_scrape_api_covid_us"
@@ -198,10 +199,26 @@ def main():
         df = pd.read_csv(GEO_DATA_PATH)
         states = df["state"].dropna().unique().tolist()
 
+    # Create one flow for each state.
+
+    flow_ids = []
     for state in states:
         flow = create_flow(state, provider)
         flow.run_config = UniversalRun()
-        flow.register(project_name="prefect-exploration")
+        flow_id = flow.register(project_name="prefect-exploration")
+        flow_ids.append(flow_id)
+
+    # Register a parent flow that runs every state's flow.
+
+    with Flow(f"calculate-case-density (all) {provider}",
+              executor=LocalDaskExecutor(),
+              storage=GCS(bucket="prefect-flows")) as parent_flow:
+
+        for flow_id in flow_ids:
+            create_flow_run(flow_id)
+
+    parent_flow.run_config = UniversalRun()
+    parent_flow.register(project_name="prefect-exploration")
 
 
 if __name__ == "__main__":
