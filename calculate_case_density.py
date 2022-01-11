@@ -49,6 +49,7 @@ from google.cloud import storage
 from prefect import Flow, Parameter, task, unmapped
 from prefect.engine import signals
 from prefect.executors import DaskExecutor, LocalDaskExecutor
+from prefect.run_configs import UniversalRun
 from prefect.tasks.control_flow.filter import FilterTask
 from typing import List
 
@@ -197,6 +198,7 @@ def main():
 
     for state in states:
         flow = create_flow(state, provider)
+        flow.run_config = UniversalRun()
         flow.register(project_name="prefect-exploration")
 
 
