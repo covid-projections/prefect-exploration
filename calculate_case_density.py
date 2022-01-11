@@ -142,18 +142,15 @@ def population_of(location_ids: List[str], population_data_path: str):
 
 @task
 def calculate_case_density(new_cases, population):
+    logger = prefect.context.get("logger")
+
     case_density = new_cases / population * 100_000
 
-    print(f"new cases: {new_cases}")
-    print(f"population: {population}")
-    print(f"case density per 100k: {case_density}")
+    logger.info(f"new cases: {new_cases}")
+    logger.info(f"population: {population}")
+    logger.info(f"case density per 100k: {case_density}")
 
     return case_density
-
-
-@task
-def log_data(data):
-    print(data)
 
 
 def create_flow(state, provider):
@@ -180,9 +177,6 @@ def create_flow(state, provider):
         )
         population = population_of(location_ids, population_data_path)
         case_density = calculate_case_density(daily_new_cases, population)
-
-        # TODO: output to file instead
-        log_data(case_density)
 
     return flow
 
