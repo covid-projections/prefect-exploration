@@ -72,7 +72,6 @@ def location_ids_for(state: str, geo_data_path: str = GEO_DATA_PATH) -> List[str
 def daily_new_cases_for(location_id: str, provider: str, smooth: int) -> float:
     logger = prefect.context.get("logger")
 
-    '''
     storage_client = storage.Client()
     bucket = storage_client.bucket("prefect-exploration")
     fn = f"can_scrape_api_covid_us_{location_id}.parquet"
@@ -87,8 +86,8 @@ def daily_new_cases_for(location_id: str, provider: str, smooth: int) -> float:
         # TODO: report the error somewhere. Sentry?
         prefect.context.logger.error(f"missing Parquet COVID data for {location_id}")
         raise signals.SKIP()
-    '''
 
+    '''
     engine = sa.create_engine(connstr)
 
     with engine.connect() as conn:
@@ -97,6 +96,7 @@ def daily_new_cases_for(location_id: str, provider: str, smooth: int) -> float:
         ).bindparams(location_id=location_id)
 
         df = pd.read_sql_query(query, conn)
+    '''
 
     # TODO: add ability to back off to other providers?
     df = df[df["provider"] == provider]
@@ -177,7 +177,8 @@ def create_flow(state, provider):
               executor=LocalDaskExecutor(),
               storage=GCS(bucket="prefect-flows")) as flow:
 
-        location_ids = location_ids_for(state, GEO_DATA_PATH)
+        #location_ids = location_ids_for(state, GEO_DATA_PATH)
+        location_ids = location_ids_for("CA", GEO_DATA_PATH)
         daily_new_cases = sum_numbers(
             remove_skipped_tasks(
                 daily_new_cases_for.map(location_ids, unmapped(provider), unmapped(7))
