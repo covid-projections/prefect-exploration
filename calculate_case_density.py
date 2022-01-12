@@ -47,6 +47,7 @@ import sqlalchemy as sa
 
 from datetime import date, timedelta
 from google.cloud import storage
+from io import BytesIO
 from prefect import Flow, Parameter, task, unmapped
 from prefect.engine import signals
 from prefect.executors import DaskExecutor, LocalDaskExecutor
@@ -75,14 +76,12 @@ def daily_new_cases_for(location_id: str, provider: str, smooth: int) -> float:
     storage_client = storage.Client()
     bucket = storage_client.bucket("prefect-exploration")
     fn = f"can_scrape_api_covid_us_{location_id}.parquet"
+    logger.info(f"Downloading {fn}")
     blob = bucket.blob(f"location-parquet-files/{fn}")
-    path = f"/tmp/{fn}"
-    blob.download_to_filename(path)
-    logger.info(f"Downloaded to {path}")
 
     try:
-        df = pd.read_parquet(path)
-    except FileNotFoundError:
+        df = pd.read_parquet(BytesIO(blob.download_as_bytes()))
+    except:
         # TODO: report the error somewhere. Sentry?
         prefect.context.logger.error(f"missing Parquet COVID data for {location_id}")
         raise signals.SKIP()
