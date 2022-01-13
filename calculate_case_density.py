@@ -105,6 +105,11 @@ def daily_new_cases_for(location_id: str, provider: str, smooth: int) -> float:
     # TODO: what to do if not enough dates to satisfy smoothing?
     # max_date = date.today()
     max_date = df["dt"].max()
+
+    if not isinstance(max_date, date):
+        logger.error(f"max_date {max_date} for location {location_id} is of unexpected type {type(max_date)}")
+        raise signals.SKIP()
+
     dates = [max_date - timedelta(days=days) for days in range(0, smooth + 1)]
     df = df[df["dt"].isin(dates)]
 
