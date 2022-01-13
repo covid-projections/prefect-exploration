@@ -86,7 +86,7 @@ def daily_new_cases_for(location_id: str, provider: str, smooth: int) -> float:
         prefect.context.logger.error(f"missing Parquet COVID data for {location_id}")
         raise signals.SKIP()
 
-    '''
+    """
     engine = sa.create_engine(connstr)
 
     with engine.connect() as conn:
@@ -95,7 +95,7 @@ def daily_new_cases_for(location_id: str, provider: str, smooth: int) -> float:
         ).bindparams(location_id=location_id)
 
         df = pd.read_sql_query(query, conn)
-    '''
+    """
 
     # TODO: add ability to back off to other providers?
     df = df[df["provider"] == provider]
@@ -107,7 +107,9 @@ def daily_new_cases_for(location_id: str, provider: str, smooth: int) -> float:
     max_date = df["dt"].max()
 
     if not isinstance(max_date, date):
-        logger.error(f"max_date {max_date} for location {location_id} is of unexpected type {type(max_date)}")
+        logger.error(
+            f"max_date {max_date} for location {location_id} is of unexpected type {type(max_date)}"
+        )
         raise signals.SKIP()
 
     dates = [max_date - timedelta(days=days) for days in range(0, smooth + 1)]
@@ -177,11 +179,13 @@ def create_flow(state, provider):
         filter_func=lambda x: not isinstance(x, signals.SKIP)
     )
 
-    with Flow(f"calculate-case-density ({state}) ({provider})",
-              executor=LocalDaskExecutor(),
-              storage=GCS(bucket="prefect-flows")) as flow:
+    with Flow(
+        f"calculate-case-density ({state}) ({provider})",
+        executor=LocalDaskExecutor(),
+        storage=GCS(bucket="prefect-flows"),
+    ) as flow:
 
-        #location_ids = location_ids_for(state, GEO_DATA_PATH)
+        # location_ids = location_ids_for(state, GEO_DATA_PATH)
         location_ids = location_ids_for("CA", GEO_DATA_PATH)
         daily_new_cases = sum_numbers(
             remove_skipped_tasks(
@@ -209,7 +213,7 @@ def main():
     )
     args = parser.parse_args()
 
-    provider = args.provider or 'usafacts'
+    provider = args.provider or "usafacts"
     if args.states:
         states = [state.strip() for state in args.states.split(",")]
     else:
@@ -227,9 +231,11 @@ def main():
 
     # Register a parent flow that runs every state's flow.
 
-    with Flow(f"calculate-case-density (all) {provider}",
-              executor=LocalDaskExecutor(),
-              storage=GCS(bucket="prefect-flows")) as parent_flow:
+    with Flow(
+        f"calculate-case-density (all) {provider}",
+        executor=LocalDaskExecutor(),
+        storage=GCS(bucket="prefect-flows"),
+    ) as parent_flow:
 
         for flow_id in flow_ids:
             create_flow_run(flow_id)

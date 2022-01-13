@@ -21,11 +21,13 @@ from typing import List
 
 GEO_DATA_PATH = "https://media.githubusercontent.com/media/covid-projections/covid-data-model/main/data/geo-data.csv"
 
+
 @task
 def location_ids_for(state: str, geo_data_path: str = GEO_DATA_PATH) -> List[str]:
     df = pd.read_csv(geo_data_path)
     df = df[df["state"] == state]
     return df["location_id"].tolist()
+
 
 @task
 def fetch_location_ids(connstr: str):
@@ -36,6 +38,7 @@ def fetch_location_ids(connstr: str):
         )
         location_ids = [row[0] for row in result.fetchall()]
         return location_ids
+
 
 def upload(local_path, bucket, blob_path):
     logger = prefect.context.get("logger")
@@ -63,7 +66,7 @@ def create_location_parquet(connstr: str, location_id: str):
         # a dependency? Would probably use pyarrow instead for Parquet IO.
         df = pd.read_sql_query(query, conn)
 
-    data_dir = pathlib.Path('/home/clizzin/prefect-exploration/can-scrape-outputs')
+    data_dir = pathlib.Path("/home/clizzin/prefect-exploration/can-scrape-outputs")
     data_dir.mkdir(parents=True, exist_ok=True)
     filename_prefix = "can_scrape_api_covid_us"
 
@@ -90,10 +93,10 @@ def create_location_parquet(connstr: str, location_id: str):
     return vintage_fn, fn
 
 
-
 def create_flow(state):
-    with Flow(f"update-location-parquet-files ({state})",
-              storage=GCS(bucket="prefect-flows")) as flow:
+    with Flow(
+        f"update-location-parquet-files ({state})", storage=GCS(bucket="prefect-flows")
+    ) as flow:
 
         location_ids = location_ids_for(state, GEO_DATA_PATH)
         filename_tuples = create_location_parquet.map(
@@ -117,8 +120,10 @@ def main():
 
     # Register a parent flow that runs every state's flow.
 
-    with Flow("update-location-parquet-files",
-              storage=GCS(bucket="prefect-flows")) as parent_flow:
+    with Flow(
+        "update-location-parquet-files",
+        storage=GCS(bucket="prefect-flows")
+    ) as parent_flow:
 
         for flow_id in flow_ids:
             create_flow_run(flow_id)
