@@ -95,7 +95,9 @@ def create_location_parquet(connstr: str, location_id: str):
 
 def create_flow(state):
     with Flow(
-        f"update-location-parquet-files ({state})", storage=GCS(bucket="prefect-flows")
+        f"update-location-parquet-files ({state})",
+        executor=LocalDaskExecutor(scheduler="threads", num_workers=8),
+        storage=GCS(bucket="prefect-flows")
     ) as flow:
 
         location_ids = location_ids_for(state, GEO_DATA_PATH)
