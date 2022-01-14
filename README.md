@@ -16,7 +16,7 @@ sudo su - $USER  # hack to apply conda settings
 mamba create -n prefect-exploration python=3.7
 conda activate prefect-exploration
 
-# MANUAL STEP: scp up requirements.txt
+# MANUAL STEP: scp up requirements.txt. to generate requirements.txt, run `pipenv lock -r > requirements.txt`
 
 # install python deps
 pip install -r requirements.txt
